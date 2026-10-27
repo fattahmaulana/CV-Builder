@@ -63,11 +63,24 @@ export async function createSociaBuzzCheckout(
   if (isLiveConfigured) {
     try {
       const client = new SociaBuzzClient(baseUrl);
+
+      // Auto-detect creator minimum donation to prevent "Minimal IDR10,000" error
+      let targetAmount = amount;
+      try {
+        const creatorConfig = await client.getCreatorConfig(username, "IDR");
+        const minVal = Number(creatorConfig?.MIN_DONATE || creatorConfig?.TRAKTIR_PRICE || 0);
+        if (minVal > 0 && minVal > targetAmount) {
+          targetAmount = minVal;
+        }
+      } catch {
+        // use default amount
+      }
+
       // Step 1: Submit donation form
       const donation = await client.submitDonation(
         username,
         "IDR",
-        amount,
+        targetAmount,
         candidateInfo.name || "Kandidat CVBuilder",
         candidateInfo.email || "kandidat@cvbuilder.id",
         `CV ATS Harvard #${cvId.slice(0, 8)}`
@@ -80,7 +93,7 @@ export async function createSociaBuzzCheckout(
         token,
         "qris",
         {
-          amount,
+          amount: targetAmount,
           currency: "IDR",
           country: "Indonesia",
         }
