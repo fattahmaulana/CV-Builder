@@ -88,7 +88,7 @@ export async function createSociaBuzzCheckout(
 
       invoiceNumber = payment.inv_id || `TRIBE-IDR-${token}`;
       qrString = payment.qr_string || `00020101021226650013ID.CO.QRIS.WWW0118936008480000000000520458125303360540${amount}5802ID5912CVBUILDER6007JAKARTA6304`;
-      paymentUrl = `${appUrl}/payment/mock-checkout?invoice=${invoiceNumber}&cvId=${cvId}&token=${token}&qr=${encodeURIComponent(qrString)}`;
+      paymentUrl = `/payment/mock-checkout?invoice=${invoiceNumber}&cvId=${cvId}&token=${token}&qr=${encodeURIComponent(qrString)}`;
       qrImageUrl = payment.qr_image_url || `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qrString)}`;
     } catch (err) {
       console.warn("Live SociaBuzz session creation failed, using fallback:", err);
@@ -97,7 +97,7 @@ export async function createSociaBuzzCheckout(
       invoiceNumber = `INV-CVB-${timestampPart}-${randomPart}`;
       token = `SBZ-${timestampPart}`;
       qrString = `00020101021226650013ID.CO.QRIS.WWW0118936008480000000000520458125303360540${amount}5802ID5912CVBUILDER6007JAKARTA6304`;
-      paymentUrl = `${appUrl}/payment/mock-checkout?invoice=${invoiceNumber}&cvId=${cvId}&token=${token}&qr=${encodeURIComponent(qrString)}`;
+      paymentUrl = `/payment/mock-checkout?invoice=${invoiceNumber}&cvId=${cvId}&token=${token}&qr=${encodeURIComponent(qrString)}`;
       qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qrString)}`;
     }
   } else {
@@ -107,7 +107,7 @@ export async function createSociaBuzzCheckout(
     invoiceNumber = `INV-CVB-${timestampPart}-${randomPart}`;
     token = `SBZ-${timestampPart}`;
     qrString = `00020101021226650013ID.CO.QRIS.WWW0118936008480000000000520458125303360540${amount}5802ID5912CVBUILDER6007JAKARTA6304`;
-    paymentUrl = `${appUrl}/payment/mock-checkout?invoice=${invoiceNumber}&cvId=${cvId}&token=${token}&qr=${encodeURIComponent(qrString)}`;
+    paymentUrl = `/payment/mock-checkout?invoice=${invoiceNumber}&cvId=${cvId}&token=${token}&qr=${encodeURIComponent(qrString)}`;
     qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qrString)}`;
   }
 
