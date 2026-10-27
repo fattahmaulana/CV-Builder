@@ -1,0 +1,50 @@
+/**
+ * CVBuilder Neobrutalist Design Tokens (Referens: Lithos UI)
+ * Single Source of Truth for Design Tokens
+ */
+
+:root {
+  /* Exact Requested Neobrutalist Color Tokens */
+  --bg: #FFFBEB;
+  --surface: #FFFFFF;
+  --text: #000000;
+  --border: #000000;
+  --accent: #FFE500;     /* Vibrant Yellow */
+  --accent-2: #FF6B9D;   /* Bubblegum Pink */
+  --accent-3: #4D7CFF;   /* Bold Royal Blue */
+
+  /* Hard Offset Shadows (Zero Blur, No Gradients) */
+  --shadow: 4px 4px 0 0 #000000;
+  --shadow-sm: 2px 2px 0 0 #000000;
+  --shadow-lg: 6px 6px 0 0 #000000;
+  --shadow-xl: 8px 8px 0 0 #000000;
+  --shadow-hover: 5px 5px 0 0 #000000;
+  --shadow-active: 0 0 0 0 #000000;
+
+  /* Strict Border & Radius Rules (2px - 3px black, max 4px radius) */
+  --border-width: 3px;
+  --border-width-sm: 2px;
+  --border-solid: 3px solid #000000;
+  --border-solid-sm: 2px solid #000000;
+  --radius-none: 0px;
+  --radius-sm: 3px;
+  --radius-max: 4px;
+
+  /* Semantic Semantic Status Colors (Flat & Saturated) */
+  --status-success: #10B981;
+  --status-warning: #F59E0B;
+  --status-error: #EF4444;
+  --status-info: #4D7CFF;
+
+  /* Legacy variable mappings to maintain compatibility with submodules */
+  --color-bg-canvas: var(--bg);
+  --color-bg-card: var(--surface);
+  --color-bg-subtle: #FEF3C7;
+  --color-text-main: var(--text);
+  --color-text-muted: #4B5563;
+  --color-accent: var(--accent);
+  --color-border-subtle: #000000;
+  --color-border-strong: #000000;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+}

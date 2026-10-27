@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MASALAH 2: Single Source of Truth for AI, Preview, PDF & DOCX > buildCvModel produces deterministic normalized model matching snapshot 1`] = `
+{
+  "awards": [],
+  "certifications": [],
+  "educations": [
+    {
+      "city": "Bandung",
+      "current": false,
+      "degree": "Sarjana Komputer (S1)",
+      "description": "Lulus dengan predikat Cum Laude.",
+      "endDate": "2024",
+      "fieldOfStudy": "Sistem Informasi",
+      "gpa": "3.88",
+      "id": "edu-1",
+      "institution": "Institut Teknologi Bandung",
+      "startDate": "2020",
+    },
+  ],
+  "experiences": [
+    {
+      "bullets": [
+        "Melakukan pengujian fitur aplikasi.",
+        "Membantu menulis laporan bug.",
+      ],
+      "category": "magang",
+      "city": "Jakarta",
+      "current": false,
+      "endDate": "Agu 2024",
+      "id": "exp-1",
+      "organization": "PT Solusi Teknologi",
+      "role": "Quality Assurance Intern",
+      "startDate": "Feb 2024",
+    },
+  ],
+  "metadata": {
+    "jobDescription": "Dibutuhkan QA Automation Engineer dengan pengalaman Playwright dan CI/CD.",
+    "language": "id",
+    "targetCompany": "Tech Corp",
+    "targetPosition": "QA Automation Engineer",
+    "template": "ats-harvard",
+  },
+  "personalInfo": {
+    "city": "Bandung",
+    "email": "siti.rahmawati@email.com",
+    "fullName": "Siti Rahmawati",
+    "linkedinUrl": "https://linkedin.com/in/sitirahmawati",
+    "phone": "0812-9876-5432",
+    "photoUrl": "",
+    "portfolioUrl": "https://sitirahma.dev",
+    "summary": "Fresh graduate Sistem Informasi yang mencari pekerjaan.",
+  },
+  "skills": {
+    "languages": [
+      "Bahasa Indonesia",
+      "English",
+    ],
+    "technical": [
+      "TypeScript",
+      "Vitest",
+      "Playwright",
+    ],
+    "tools": [
+      "Git",
+      "Postman",
+    ],
+  },
+}
+`;

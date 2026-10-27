@@ -1,0 +1,1 @@
+export const CURRENT_AI_CONSENT_VERSION = "v1.0-2026";
