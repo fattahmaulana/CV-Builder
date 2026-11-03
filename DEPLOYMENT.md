@@ -28,10 +28,12 @@ Buat file `.env.local` pada tahap pengembangan atau tambahkan ke **Vercel Projec
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ya | Anon public key Supabase | `eyJhbGciOi...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Ya | Service role key Supabase (Server Only) | `eyJhbGciOi...` |
 | `GEMINI_API_KEY` | Ya | API Key dari Google AI Studio | `AIzaSy...` |
-| `DOKU_CLIENT_ID` | Ya | Client ID dari DOKU Merchant Portal | `MALL-12345678` |
-| `DOKU_SECRET_KEY` | Ya | Shared secret key untuk verifikasi HMAC | `SK-abcdef123456...` |
-| `DOKU_API_URL` | Ya | URL Base API DOKU | `https://api.doku.com` (Prod) atau `https://api-sandbox.doku.com` (Dev) |
-| `DOKU_CHECKOUT_URL` | Ya | URL Halaman Checkout DOKU | `https://checkout.doku.com` (Prod) atau `https://sandbox.doku.com` (Dev) |
+| `SOCIABUZZ_BASE_URL` | Opsional | URL Host SociaBuzz | `https://sociabuzz.com` (default) |
+| `SOCIABUZZ_USERNAME` | Ya (untuk Live) | Username SociaBuzz akun penerima donasi/pembayaran | `fxrrel` atau akun Anda |
+| `DOKU_CLIENT_ID` | Opsional | Client ID dari DOKU Merchant Portal (Fallback) | `MALL-12345678` |
+| `DOKU_SECRET_KEY` | Opsional | Shared secret key untuk verifikasi HMAC | `SK-abcdef123456...` |
+| `DOKU_API_URL` | Opsional | URL Base API DOKU | `https://api.doku.com` (Prod) atau `https://api-sandbox.doku.com` (Dev) |
+| `DOKU_CHECKOUT_URL` | Opsional | URL Halaman Checkout DOKU | `https://checkout.doku.com` (Prod) atau `https://sandbox.doku.com` (Dev) |
 | `GOOGLE_CLIENT_ID` | Ya | OAuth 2.0 Client ID dari Google Cloud Console | `xxxxxx.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Ya | OAuth 2.0 Client Secret dari Google Cloud Console | `GOCSPX-xxxxxx` |
 | `ENCRYPTION_KEY` | Ya | Kunci 32-byte (64 hex characters) untuk AES-256-GCM | `0123456789abcdef...` (generate via crypto) |
@@ -66,8 +68,16 @@ Buat file `.env.local` pada tahap pengembangan atau tambahkan ke **Vercel Projec
 
 ---
 
-## 4. Konfigurasi Gateway Pembayaran DOKU
+## 4. Konfigurasi Gateway Pembayaran (SociaBuzz & DOKU)
 
+### A. SociaBuzz QRIS (Gateway Utama)
+1. Daftarkan akun kreator di [SociaBuzz](https://sociabuzz.com).
+2. Set variabel `SOCIABUZZ_USERNAME` dengan username SociaBuzz Anda di Vercel / `.env.local`.
+3. Di dashboard SociaBuzz (menu Integrasi / Webhook), masukkan URL Webhook:
+   `https://[DOMAIN_ANDA]/api/payments/webhook` (atau `https://[DOMAIN_ANDA]/webhook`)
+4. Setiap transaksi donasi/pembayaran QRIS yang lunas akan mengirim notifikasi ke URL webhook tersebut dan otomatis membuka akses unduh CV resmi tanpa watermark.
+
+### B. DOKU Checkout (Gateway Fallback)
 1. Daftarkan akun di [DOKU Back Office](https://bo.doku.com).
 2. Di menu **Settings > Notification URL**, atur URL Webhook:
    `https://[DOMAIN_ANDA]/api/payments/webhook`

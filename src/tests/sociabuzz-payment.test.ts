@@ -166,8 +166,9 @@ describe("SociaBuzz QRIS Payment Gateway Integration", () => {
     });
 
     it("should check payment status from database and return 'paid'", async () => {
-      const status = await checkSociaBuzzPaymentStatus("TRIBE-IDR-MOCK-123");
-      expect(status).toBe("paid");
+      const res = await checkSociaBuzzPaymentStatus("TRIBE-IDR-MOCK-123");
+      expect(res.status).toBe("paid");
+      expect(res.invoiceNumber).toBe("TRIBE-IDR-MOCK-123");
     });
   });
 });

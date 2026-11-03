@@ -30,10 +30,11 @@ export function MockCheckoutClient({
   // Fallback to local default QRIS data if initialQrImage is somehow empty
   const qrImageUrl = initialQrImage || "";
 
-  // Auto-polling payment status every 3 seconds (real-time SociaBuzz sync)
+  // Auto-polling payment status every 2.5 seconds (real-time SociaBuzz sync)
   React.useEffect(() => {
     if (paymentSuccess) return;
 
+    let isMounted = true;
     const interval = setInterval(async () => {
       try {
         setIsCheckingStatus(true);
@@ -43,28 +44,33 @@ export function MockCheckoutClient({
           body: JSON.stringify({
             invoiceNumber,
             token,
+            cvId,
           }),
         });
 
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const data = await res.json();
           if (data.status === "paid" || data.status === "PAID") {
             setPaymentSuccess(true);
             clearInterval(interval);
             setTimeout(() => {
-              router.push(`/payment/success?invoice=${invoiceNumber}`);
-            }, 1000);
+              const targetInv = data.invoiceNumber || invoiceNumber;
+              router.push(`/payment/success?invoice=${encodeURIComponent(targetInv)}`);
+            }, 800);
           }
         }
       } catch {
         // ignore polling network errors
       } finally {
-        setIsCheckingStatus(false);
+        if (isMounted) setIsCheckingStatus(false);
       }
-    }, 3000);
+    }, 2500);
 
-    return () => clearInterval(interval);
-  }, [invoiceNumber, token, paymentSuccess, router]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [invoiceNumber, token, cvId, paymentSuccess, router]);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-black flex flex-col items-center justify-center p-4 sm:p-6">

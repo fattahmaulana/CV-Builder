@@ -189,7 +189,84 @@ export async function processSociaBuzzPaymentSuccess(
 
   const resolvedEventId = eventId || `SBZ-EVT-${Date.now()}`;
 
-  // 1. Idempotency Check in payment_events table
+  // 1. Locate existing Order first to guarantee Foreign Key integrity
+  const now = new Date();
+  const revisionDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  let order: { id: string; cv_id: string; invoice_number: string } | null = null;
+
+  try {
+    // 1a. Try matching by invoice_number
+    const { data: orderInv } = await supabase
+      .from("orders")
+      .select("id, cv_id, invoice_number")
+      .eq("invoice_number", invoiceNumberOrToken)
+      .maybeSingle();
+    order = orderInv;
+
+    // 1b. Try matching by doku_reference (which stores the session token)
+    if (!order) {
+      const { data: orderToken } = await supabase
+        .from("orders")
+        .select("id, cv_id, invoice_number")
+        .eq("doku_reference", invoiceNumberOrToken)
+        .maybeSingle();
+      order = orderToken;
+    }
+
+    // 1c. Try matching by extracted cv_id from note or message if available
+    if (!order && rawPayload && typeof rawPayload === "object") {
+      const payloadObj = rawPayload as Record<string, any>;
+      const candidateText = `${payloadObj.note || ""} ${payloadObj.message || ""} ${payloadObj.description || ""}`;
+      const cvMatch = candidateText.match(/#?([a-f0-9-]{36})/i) || candidateText.match(/#([a-zA-Z0-9_-]{8,})/);
+      if (cvMatch && cvMatch[1]) {
+        const potentialCvId = cvMatch[1];
+        const { data: orderCv } = await supabase
+          .from("orders")
+          .select("id, cv_id, invoice_number")
+          .ilike("cv_id", `${potentialCvId}%`)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        order = orderCv;
+      }
+    }
+
+    // 1d. Fallback: match latest pending order
+    if (!order) {
+      const { data: latestPending } = await supabase
+        .from("orders")
+        .select("id, cv_id, invoice_number")
+        .eq("status", "PENDING")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      order = latestPending;
+    }
+  } catch (searchErr) {
+    if (!isMockSupabase) console.warn("Failed searching order for SociaBuzz success:", searchErr);
+  }
+
+  // Handle mock environment if still not found
+  if (!order && isMockSupabase) {
+    return {
+      success: true,
+      cvId: "demo-cv-id",
+      invoiceNumber: invoiceNumberOrToken,
+    };
+  }
+
+  if (!order) {
+    console.warn("No matching order found for SociaBuzz success:", invoiceNumberOrToken);
+    return {
+      success: false,
+      invoiceNumber: invoiceNumberOrToken,
+    };
+  }
+
+  const validInvoiceNumber = order.invoice_number;
+
+  // 2. Idempotency Check in payment_events table using valid Foreign Key (order.invoice_number)
   try {
     const { data: existingEvent } = await supabase
       .from("payment_events")
@@ -201,14 +278,15 @@ export async function processSociaBuzzPaymentSuccess(
       return {
         success: true,
         alreadyProcessed: true,
-        invoiceNumber: invoiceNumberOrToken,
+        cvId: order.cv_id,
+        invoiceNumber: validInvoiceNumber,
       };
     }
 
     if (!existingEvent) {
       await supabase.from("payment_events").insert({
         event_id: resolvedEventId,
-        invoice_number: invoiceNumberOrToken,
+        invoice_number: validInvoiceNumber,
         event_type: "PAYMENT_SUCCESS",
         payload: (rawPayload || {}) as Json,
         processed: true,
@@ -220,60 +298,12 @@ export async function processSociaBuzzPaymentSuccess(
         .eq("id", existingEvent.id);
     }
   } catch (eventErr) {
-    if (!isMockSupabase) console.warn("Failed recording payment event:", eventErr);
+    // Non-fatal: even if payment_events fails, order MUST still be marked PAID
+    if (!isMockSupabase) console.warn("Failed recording payment event (non-fatal):", eventErr);
   }
 
-  // 2. Find and update Order status to PAID
-  const now = new Date();
-  const revisionDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
+  // 3. Update Order status to PAID
   try {
-    // Try matching by invoice_number first
-    let { data: order } = await supabase
-      .from("orders")
-      .select("id, cv_id, invoice_number")
-      .eq("invoice_number", invoiceNumberOrToken)
-      .maybeSingle();
-
-    // If not found by invoice_number, try matching by doku_reference (which stores the SociaBuzz token)
-    if (!order) {
-      const { data: orderToken } = await supabase
-        .from("orders")
-        .select("id, cv_id, invoice_number")
-        .eq("doku_reference", invoiceNumberOrToken)
-        .maybeSingle();
-      order = orderToken;
-    }
-
-    // If still not found and in mock environment
-    if (!order && isMockSupabase) {
-      return {
-        success: true,
-        cvId: "demo-cv-id",
-        invoiceNumber: invoiceNumberOrToken,
-      };
-    }
-
-    if (!order) {
-      // Find latest pending order as fallback
-      const { data: latestPending } = await supabase
-        .from("orders")
-        .select("id, cv_id, invoice_number")
-        .eq("status", "PENDING")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      order = latestPending;
-    }
-
-    if (!order) {
-      console.warn("No matching order found for SociaBuzz success:", invoiceNumberOrToken);
-      return {
-        success: false,
-        invoiceNumber: invoiceNumberOrToken,
-      };
-    }
-
     const { error: updateError } = await supabase
       .from("orders")
       .update({
@@ -294,14 +324,14 @@ export async function processSociaBuzzPaymentSuccess(
     return {
       success: true,
       cvId: order.cv_id,
-      invoiceNumber: order.invoice_number,
+      invoiceNumber: validInvoiceNumber,
     };
   } catch (dbErr) {
     if (isMockSupabase) {
       return {
         success: true,
         cvId: "demo-cv-id",
-        invoiceNumber: invoiceNumberOrToken,
+        invoiceNumber: validInvoiceNumber,
       };
     }
     throw dbErr;
@@ -312,19 +342,32 @@ export async function processSociaBuzzPaymentSuccess(
  * Checks payment status from DB or polls SociaBuzz live endpoint
  */
 export async function checkSociaBuzzPaymentStatus(
-  invoiceNumberOrToken: string
-): Promise<"paid" | "pending" | "failed"> {
+  invoiceNumberOrToken: string,
+  cvId?: string
+): Promise<{ status: "paid" | "pending" | "failed"; invoiceNumber?: string }> {
   const supabase = createAdminClient();
 
-  // 1. Check database first
-  const { data: order } = await supabase
+  // 1. Check database first by invoice_number or doku_reference
+  let { data: order } = await supabase
     .from("orders")
     .select("status, doku_reference, invoice_number")
     .or(`invoice_number.eq.${invoiceNumberOrToken},doku_reference.eq.${invoiceNumberOrToken}`)
     .maybeSingle();
 
+  // If not found and cvId provided, check by cvId
+  if (!order && cvId) {
+    const { data: orderCv } = await supabase
+      .from("orders")
+      .select("status, doku_reference, invoice_number")
+      .eq("cv_id", cvId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    order = orderCv;
+  }
+
   if (order?.status === "PAID") {
-    return "paid";
+    return { status: "paid", invoiceNumber: order.invoice_number };
   }
 
   // 2. If PENDING and live SociaBuzz configured, poll SociaBuzz
@@ -337,16 +380,16 @@ export async function checkSociaBuzzPaymentStatus(
       const client = new SociaBuzzClient(baseUrl);
       const liveStatus = await client.checkPaymentStatus(token, "qris", invId);
       if (liveStatus === "paid") {
-        await processSociaBuzzPaymentSuccess(invId, token, "QRIS");
-        return "paid";
+        const processed = await processSociaBuzzPaymentSuccess(invId, token, "QRIS");
+        return { status: "paid", invoiceNumber: processed.invoiceNumber || invId };
       }
-      return liveStatus;
+      return { status: liveStatus, invoiceNumber: invId };
     } catch {
       // ignore network errors
     }
   }
 
-  return "pending";
+  return { status: "pending", invoiceNumber: invId };
 }
 
 /**
@@ -355,26 +398,55 @@ export async function checkSociaBuzzPaymentStatus(
 export async function handleSociaBuzzWebhookPayload(
   rawPayload: Record<string, any>
 ): Promise<{ success: boolean; invoiceNumber?: string }> {
-  // Extract possible invoice / order ID
+  // 1. Flatten payload if wrapped in data or content object
+  const inner =
+    rawPayload?.data && typeof rawPayload.data === "object"
+      ? rawPayload.data
+      : rawPayload?.content && typeof rawPayload.content === "object"
+      ? rawPayload.content
+      : {};
+  const payload = { ...rawPayload, ...inner };
+
+  // 2. Extract possible invoice / transaction identifier
   let invId: string | null = null;
-  for (const key of ["order_id", "inv_id", "invoice_id", "transaction_id", "id"]) {
-    if (rawPayload[key] && typeof rawPayload[key] === "string") {
-      invId = rawPayload[key];
+  const idKeys = [
+    "inv_id",
+    "invoice_id",
+    "invoice_number",
+    "order_id",
+    "transaction_id",
+    "transaction_number",
+    "no_transaksi",
+    "trx_id",
+    "id",
+  ];
+  for (const key of idKeys) {
+    if (payload[key] && typeof payload[key] === "string") {
+      invId = payload[key];
       break;
     }
   }
 
-  // Extract possible session token
+  // 3. Extract possible session token
   let token: string | null = null;
   for (const key of ["token", "session_token"]) {
-    if (rawPayload[key] && typeof rawPayload[key] === "string") {
-      token = rawPayload[key];
+    if (payload[key] && typeof payload[key] === "string") {
+      token = payload[key];
       break;
     }
   }
 
-  const targetIdentifier = invId || token;
+  // 4. Extract possible cv_id from note / message / description
+  let extractedCvId: string | null = null;
+  const noteText = `${payload.note || ""} ${payload.message || ""} ${payload.description || ""}`;
+  const cvMatch = noteText.match(/#?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i) || noteText.match(/#([a-zA-Z0-9_-]{8,})/);
+  if (cvMatch && cvMatch[1]) {
+    extractedCvId = cvMatch[1];
+  }
+
+  const targetIdentifier = invId || token || extractedCvId;
   if (!targetIdentifier) {
+    console.warn("[SociaBuzz Webhook] No identifier could be extracted from payload:", rawPayload);
     return { success: false };
   }
 

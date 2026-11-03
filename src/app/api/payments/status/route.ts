@@ -5,16 +5,21 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const token = body?.token || body?.invoiceNumber || body?.inv_id;
+    const cvId = body?.cvId;
 
-    if (!token) {
-      return NextResponse.json({ error: "token atau invoiceNumber wajib disertakan" }, { status: 400 });
+    if (!token && !cvId) {
+      return NextResponse.json(
+        { error: "token, invoiceNumber, atau cvId wajib disertakan" },
+        { status: 400 }
+      );
     }
 
-    const status = await checkSociaBuzzPaymentStatus(token);
+    const { status, invoiceNumber } = await checkSociaBuzzPaymentStatus(token || cvId, cvId);
 
     return NextResponse.json({
       success: true,
       token,
+      invoiceNumber,
       status, // 'paid' | 'pending' | 'failed'
     });
   } catch (error: unknown) {
