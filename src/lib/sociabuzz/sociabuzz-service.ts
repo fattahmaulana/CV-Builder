@@ -48,9 +48,9 @@ export async function createSociaBuzzCheckout(
   }
 
   const amount = 5000;
-  const username = process.env.SOCIABUZZ_USERNAME || "fxrrel";
+  const username = process.env.SOCIABUZZ_USERNAME || "ftrz";
   const baseUrl = process.env.SOCIABUZZ_BASE_URL || "https://sociabuzz.com";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cv-builder-bay-omega.vercel.app";
 
   const isLiveConfigured = Boolean(process.env.SOCIABUZZ_USERNAME);
 
